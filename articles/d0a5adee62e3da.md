@@ -5,8 +5,13 @@ type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [React, useEffect, 初心者]
 published: true
 ---
-React頻出のuseEffectについて、最近ちょっとだけ知ったので備忘録としてまとめます。対象は私のようなReact初心者です。
+:::message
+(2024/3/8追記)何でもかんでもuseEffectを使えば良いというわけではなく、むしろ「アプリケーションのロジックとデータフローの大部分は、これらの機能に依存しないようにすべき」と公式の方で説明があるようです。
+https://ja.react.dev/learn/escape-hatches
+指摘してくださった方、ありがとうございます。
+:::
 
+React頻出のuseEffectについて、最近ちょっとだけ知ったので備忘録としてまとめます。対象は私のようなReact初心者です。
 ## ３つのuseEffectの書き方とその違い
 
 ### １．毎レンダリング時に実行
