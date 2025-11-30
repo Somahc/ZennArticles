@@ -106,4 +106,129 @@ https://github.com/0b5vr/wavenerd/blob/dev/src/view/utils/useElement.ts
 https://ja.react.dev/reference/react/useLayoutEffect
 
 #### シェーダのホットスワップ
-ライブコーディングパフォーマンスを想定していたので、シェーダを書き換えてホットキーを押すことで背景の実行結果が即座に置き換わる仕様にしています。大事なのはコンパイルの通らないシェーダを書いた際に映像を途切れさせないことです。
+ライブコーディングパフォーマンスを想定していたので、シェーダを書き換えてホットキーを押すことで背景の実行結果が即座に置き換わる仕様にしています。大事なのはコンパイルの通らないシェーダを書いた際に映像を途切れさせないことです。実装としてはシェーダコードを渡すとコンパイルしてシェーダオブジェクトを作ってくれる`glCreateShader()`を作っておきます。コンパイル失敗時はエラーメッセージをErrorとしてthrowし、呼び出し元でcatchするようにして、シェーダのスワップが実行されないようにします。catch節ではjotaiで管理している`compileErrorMessageAtom`にコンパイルエラー文をセットすることで、アプリUIのエラー部にエラー内容を表示させています。
+
+```ts:glCreateShader.ts
+export function glCreateShader(
+  gl: WebGLRenderingContext,
+  type: "vertex" | "fragment",
+  source: string
+): WebGLShader | null {
+  const shader = gl.createShader(
+    type === "vertex" ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER
+  )!;
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    const rawLog = gl.getShaderInfoLog(shader) ?? "";
+
+    // 特殊文字を削除
+    const cleanedLog = (() => {
+      let end = rawLog.length;
+      while (end > 0) {
+        const codePoint = rawLog.charCodeAt(end - 1);
+        const isAsciiControl = codePoint === 0x7f || codePoint <= 0x1f; // DEL or C0 controls
+        if (isAsciiControl) {
+          end -= 1;
+          continue;
+        }
+        break;
+      }
+      return rawLog.slice(0, end).trim();
+    })();
+
+    console.error(cleanedLog || undefined);
+    throw new Error(cleanedLog || undefined);
+  }
+
+  return shader;
+}
+```
+
+```ts:ShaderCanvas.tsx
+...
+const setCompileErrorMessage = useSetAtom(compileErrorMessageAtom);
+...
+
+// シェーダーコンパイルエラー表示、ホットスワップ
+  useEffect(() => {
+    if (fsSource == null) return;
+    const gl = glRef.current;
+    const vsObj = glVertexShaderRef.current;
+    if (!gl || !vsObj) return;
+
+    try {
+      const fsObj = glCreateShader(gl, "fragment", fsSource);
+      if (fsObj == null) return;
+
+      const newProg = glCreateProgram(gl, vsObj, fsObj);
+      gl.useProgram(newProg);
+      const newLocResolution = gl.getUniformLocation(newProg, "resolution");
+      const newLocTime = gl.getUniformLocation(newProg, "time");
+      const newLocBPM = gl.getUniformLocation(newProg, "bpm");
+      // スワップ
+      if (progRef.current) gl.deleteProgram(progRef.current);
+      progRef.current = newProg;
+      locResolutionRef.current = newLocResolution;
+      locTimeRef.current = newLocTime;
+      locBPMRef.current = newLocBPM;
+      setCompileErrorMessage("");
+    } catch (e) {
+      if (e instanceof Error) {
+        setCompileErrorMessage(e.message);
+      } else if (typeof e === "string") {
+        setCompileErrorMessage(e);
+      } else {
+        setCompileErrorMessage(JSON.stringify(e, null, 2));
+      }
+    }
+  }, [fsSource, setCompileErrorMessage]);
+...
+```
+
+### UIについて
+アプリのUIは、Bonzomaticを意識しつつ、あえてレトロな感じを目指しました。フューチャーレトロっていうんでしょうか。ダサかっこいい的な。映画「ALIEN」のような雰囲気です。
+https://pin.it/1tsSH0Cug
+https://pin.it/5zbbhotvx
+
+UIは文字や背景が若干光っているような見た目をCSSのtext-shadowやbox-shadowで実現し、画面に映っている感を演出しています。
+```css:ErrorPanel/index.module.css
+.errorMessage {
+  font-family: "Sometype Mono", monospace;
+  color: white;
+  padding: 0 5px;
+  text-shadow: 0 0 2.5px var(--color-error), 0 0 5px var(--color-error),
+    0 0 10px var(--color-error);
+
+  width: fit-content;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+...
+```
+![](https://storage.googleapis.com/zenn-user-upload/f6896740e28e-20251201.png)
+
+BEATの部分のアニメーションの仕組みはちょうど一年前の今日にアドベントカレンダーで紹介したCSSアニメーションの内容とほぼ同じです！beat情報をjotaiで管理し、インラインで`translateX()`を指定することでBEATをアニメーションさせています。
+https://zenn.dev/somahc/articles/c0b81dfb270e2a
+```ts:StatsPanel.tsx
+...
+const beatMeter = () => {
+    const elapsedTime = currentElapsedTime * (shaderBPM / 60);
+    const bar = Math.floor(elapsedTime);
+    const beat = elapsedTime - bar;
+    return 100 - beat * 100;
+};
+
+...
+
+<div
+    className={style.beatMeterBar}
+    style={{ transform: `translateX(-${beatMeter()}%)` }}
+></div>
+...
+```
+https://gyazo.com/6065168aed751f8e598699e96815ac62
+#### エディタのスタイル
+syntax highlight, コード文字背景だけの黒半透明背景はcodemirrorのextensionとして実装
