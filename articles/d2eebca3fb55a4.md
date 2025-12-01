@@ -1,9 +1,10 @@
 ---
-title: "Webシェーダエディタを自作して、初VJに挑戦してみた"
+title: "ブラウザで動くシェーダエディタを自作して、初VJに挑戦してみた"
 emoji: "🌈"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["TypeScript", "WebGL", "React"]
-published: false
+published: true
+published_at: 2025-12-02 09:00
 ---
 [MYJLab Advent Calendar 2025](https://qiita.com/advent-calendar/2025/myjlab)の2日目を担当します、Sigreniと申します。せっかくなので勝手ながら[グラフィックス全般 Advent Calendar 2025](https://qiita.com/advent-calendar/2025/graphics)へもマルチポストします。よろしくお願いします🤲
 
@@ -38,7 +39,7 @@ https://youtu.be/NX5vcd-ZY9s?si=q0PTH2bcHSzIfBUT&t=1160
 
 ### 概要
 ![制作したエディタの画面](https://storage.googleapis.com/zenn-user-upload/ec9401c625d9-20251127.png)
-本稿の冒頭に貼ったリンクへアクセスすることで、今回制作したエディタを見ることができます。アクセスすると上のような画面が現れると思います。
+[本稿の冒頭に貼ったリンク](https://somahc.github.io/glsl-livecoding-editor-web/)へアクセスすることで、今回制作したエディタを見ることができます。アクセスすると上のような画面が現れると思います。
 
 コードを書き換えてCmd+S（Ctrl+S）キーでコンパイルを実行します。コンパイルが成功すると背景のシェーダー実行結果が更新されます。
 また、画面下のUIからBPMという値を変更することができ、その値はbpmというuniform変数としてシェーダに渡されます。曲に合わせてBPMの値を調整することで、曲のテンポに合った映像を出すことが可能です。詳細はGitHubリポジトリのREADMEを参照してください。（[リンク](https://github.com/Somahc/glsl-livecoding-editor-web)）
@@ -339,3 +340,5 @@ VJ経験が無く、シェーダも今年から本格的に始めた自分にと
 エディタのUIの雰囲気やシェーダで作る絵など正解の無い分野で、人前でパフォーマンスをするという締切だけはあるという状況は本当に心臓に悪かったのですが、結果的にはやってみてすごく良かったと感じています。
 
 VJする機会を与えてくださった方たちやライブラリの作成者、シェーダを始めるきっかけを作ってくれた世界中のShader Wizzardたちに感謝です。ありがとうございました！
+
+（研究室でWebフロントエンドやCG、Shaderなどに興味がある人がいれば、気軽に連絡するなり声かけるなりしてください〜）
