@@ -29,7 +29,7 @@ https://www.youtube.com/watch?v=QfQglocVFTk
 
 ### なぜ制作したの？
 概要はふんわりわかっていただけたと思うのですが、そもそもシェーダエディタを作る必要があるのか、という話なんですが...。結論から言ってしまうと、作りたかったから作りました。（笑）
-もうちょっと真面目に話すと、Three.jsのようなライブラリなしでWebGLを直接扱ったことがなく、勉強したいなと思っていた自分にとって良い機会でした。~~あとエディタから作ればシェーダが微妙でも許してもらえると思いました。~~
+もうちょっと真面目に話すと、Three.jsのようなライブラリなしでWebGLを直接扱ったことがなく、勉強したいなと思っていた自分にとって良い機会でした。（それと、エディタから作ればシェーダが微妙でも許してもらえると思ったのは内緒です。）
 
 実際、[Bonzomatic](https://github.com/Gargaj/Bonzomatic)や[Sh4derJockey](https://github.com/slerpyyy/sh4der-jockey)といったパフォーマンスに使えるフリーのシェーダエディタは色々と存在します。Web上でシェーダをかける環境も色々とあるので、調べてみてください。
 
@@ -66,8 +66,8 @@ https://www.youtube.com/watch?v=QfQglocVFTk
 https://pin.it/1tsSH0Cug
 https://pin.it/5zbbhotvx
 
-UIは文字や背景が若干光っているような見た目をCSSのtext-shadowやbox-shadowで実現し、画面に映っている感を演出しています。
-![](https://storage.googleapis.com/zenn-user-upload/f6896740e28e-20251201.png)
+UIは、文字や背景が発光して光が漏れ出ているような表現をCSSのtext-shadowやbox-shadowで実現しています。
+![実装した発光表現を使ったUIの図](https://storage.googleapis.com/zenn-user-upload/f6896740e28e-20251201.png)
 
 ```css:ErrorPanel/index.module.css
 .errorMessage {
@@ -108,10 +108,10 @@ const beatMeter = () => {
 ...
 ```
 
-また、エディタ上部にクソデカ時計があるのは、本番の持ち時間が15~20分と決まっていたからです。パフォーマンスを始めてからのどれくらい時間が経ったか知れると便利だったので、アプリに実装してしまいました。（みんなどうやって時間管理しているんだろう、、？）
+また、エディタ上部に大きな時計があるのは、本番の持ち時間が15~20分と決まっていたからです。パフォーマンスを始めてからのどれくらい時間が経ったか知れると便利だったので、アプリに実装してしまいました。（みんなどうやって時間管理しているんだろう、、？）
 シェーダ経過時間はjotaiで管理していたため、そのまま使ってあげています。
 
-![アプリ上部の時計表示](https://storage.googleapis.com/zenn-user-upload/657b62aec410-20251201.png)
+![アプリ上部の時計の図](https://storage.googleapis.com/zenn-user-upload/657b62aec410-20251201.png)
 
 昔の監視カメラや動画プレイヤーっぽいUIを意識しています。好みが分かれるデザインだと思いますが、私は割と気に入っています。
 https://jp.pinterest.com/pin/898749669399686602/
@@ -218,7 +218,7 @@ https://wgld.org/sitemap.html
 :::
 
 #### フルスクリーントライアングル
-canvasの画面いっぱいにfragment shaderの実行結果が広がってくれればよかったわけですが、それを実装するためフルスクリーントライアングルというテクニック？をChatGPTから教えてもらい、実装しました。座標空間は(-1,-1)~(1,1)だそうなんですが、要はそれをすべて覆うポリゴンがあれば良いわけです。そこで(-1,-1), (3,-1), (-1,3)を頂点とするポリゴンを描画するようにvertex shaderに指示しています。
+canvasの画面いっぱいにfragment shaderの実行結果が広がってくれればよかったわけですが、それを実装するためフルスクリーントライアングルというテクニックをChatGPTから教えてもらい、実装しました。座標空間は(-1,-1)~(1,1)だそうなんですが、要はそれをすべて覆うポリゴンがあれば良いわけです。そこで(-1,-1), (3,-1), (-1,3)を頂点とするポリゴンを描画するようにvertex shaderに指示しています。
 作成したエディタで編集するのはfragment shaderのみであるため、この処理やvertex shaderのコード自体についてはハードコードしてあります。
 ```ts:ShaderCanvas.tsx
 ...
@@ -249,11 +249,16 @@ https://developer.mozilla.org/ja/docs/Web/API/HTMLCanvasElement/webglcontextlost
 0b5vr氏制作の[wavenerd](https://0b5vr.com/wavenerd/)の実装で使われていたuseElementというhooksをほぼそのまま使ってcanvasを取得し、WebGLコンテキスト取得を行うuseEffectの依存配列に含めることで解決しました。
 https://github.com/0b5vr/wavenerd/blob/dev/src/view/utils/useElement.ts
 
-`useLayoutEffect`はここで初めて知りました。使いかたは`useEffect`と同じで、`useLayoutEffect(setup, dependencies?)`のように使います。違いは、DOMの変更が反映されたあと、ブラウザが画面を描画する前に同期的に実行される点みたいです。StrictModeで行われる初期化→直後に強制クリーンアップ→再初期化の処理で、`canvas.getContext("webgl2")`のようなネイティブリソースの確保を伴う処理は壊れやすいみたいです。useElementでcanvasがstateとして確実にセットされた後でuseEffectが実行されることで、半端なタイミングでの初期化と破棄を防ぐことができ、解決した、、、という理解です。正直StrictModeの挙動をしっかり理解していないのでちょっと曖昧ですが、まあ直ったのでスルーしちゃいました。
+`useLayoutEffect`はここで初めて知りました。使いかたは`useEffect`と同じで、`useLayoutEffect(setup, dependencies?)`のように使います。違いは、DOMの変更が反映されたあと、ブラウザが画面を描画する前に同期的に実行される点みたいです。
+
 https://ja.react.dev/reference/react/useLayoutEffect
 
+StrictModeで行われる初期化→直後に強制クリーンアップ→再初期化の処理で、`canvas.getContext("webgl2")`のようなネイティブリソースの確保を伴う処理は壊れやすいみたいです。useElementでcanvasがstateとして確実にセットされた後でuseEffectが実行されることで、半端なタイミングでの初期化と破棄を防ぐことができ、解決した、、、という理解をしています。
+
 #### シェーダのホットスワップ
-ライブコーディングパフォーマンスを想定していたので、シェーダを書き換えてホットキーを押すことで背景の実行結果が即座に置き換わる仕様にしています。ここで大事なのは、コンパイルの通らないシェーダを書いた際に映像を途切れさせないことです。実装としてはシェーダコードを渡すとコンパイルしてシェーダオブジェクトを作ってくれる`glCreateShader()`を作っておきます。コンパイル失敗時はエラーメッセージをErrorとしてthrowし、呼び出し元でcatchするようにして、シェーダのスワップが実行されないようにします。catch節ではjotaiで管理している`compileErrorMessageAtom`にコンパイルエラー文をセットすることで、アプリUIのエラー部にエラー内容を表示させています。
+ライブコーディングパフォーマンスを想定していたので、シェーダを書き換えてホットキーを押すことで背景の実行結果が即座に置き換わる仕様にしています。ここで大事なのは、コンパイルの通らないシェーダを書いた際に映像を途切れさせないことです。人がコードを書く以上、エラーは必ず発生しますが、その度に映像が真っ暗になってしまったらパフォーマンスとして望ましくないからです。
+
+実装としてはシェーダコードを渡すとコンパイルしてシェーダオブジェクトを作ってくれる`glCreateShader()`を作っておきます。コンパイル失敗時はエラーメッセージをErrorとしてthrowし、呼び出し元でcatchするようにして、シェーダのスワップが実行されないようにします。catch節ではjotaiで管理している`compileErrorMessageAtom`にコンパイルエラー文をセットすることで、アプリUIのエラー部にエラー内容を表示させています。
 
 ```ts:glCreateShader.ts
 export function glCreateShader(
